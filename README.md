@@ -2,11 +2,15 @@
 
 effekt of offering german courses
 people who moved to switzerland within the last 5 years, aged 18-64
+
 treatment: offer of free lessons
+
 shortterm outcome: taking the offer
+
 longterm outcome: wage, probababilty/amount of social benefits
 
 discontinuity design: only if earning less than 50000
+
 matching: zürich vs someone with same characteristics outside of zürich
 
 
