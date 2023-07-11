@@ -30,8 +30,9 @@ n = 150000 #size of data set
 #### The Covariates --------
 # I used different distributions than uniform to have them more realistic,
 # but we can also set them all to uniform 
+# I think we dont need income and income_fe in the covariate matrix as it is our outcome -> we are not interested how much they earned before the treatment only how much they earn afeter compared to those who didnt recive the treatment
 data = tibble(
-  income = rtruncnorm(n, mean = 2400, sd = 2000, a = 0), #income before treatment 
+  #income = rtruncnorm(n, mean = 2400, sd = 2000, a = 0), #income before treatment 
   age = rpert(n, min = 18, mode = 30, max = 65, shape = 3), #covariate
   motivation = runif(n),
   gender = rdu(n,0,1),
@@ -43,7 +44,7 @@ data = tibble(
   course_or_not = rbinom(n, size = 1, prob = 0.3), #taken a german course before
   years_in_ch = rdu(n, 0,5),
   work_percentage = rbbinom(n, 10, alpha = 3, beta = 1)/10, #most will work close to 100%
-  income_fe = ifelse(work_percentage == 0, income, income/work_percentage), #full time equivalent of income
+  #income_fe = ifelse(work_percentage == 0, income, income/work_percentage), #full time equivalent of income
   id = 1:n)
 #no_of_children 
 #age of youngest child
@@ -58,8 +59,16 @@ v <- rnorm(n,0,50) #error term
 # Random assignment to treatment with a probability of 50%
 d_assignment <- rbinom(n, size = 1, prob = 0.5)
 
-#self selection, self selection into taking German course depends on covariates
-d_star <- -200 + 50 * data$zipcode - 0.5*data$age + 20*data$education_level + 5*data$education_level^2  - 10*data$work_percentage + 70*data$motivation  + rnorm(n, 0, 20) 
+#self selection, self selection into taking German course depends on covariates:
+
+#50 * data$zipcode -> if in zurich more likely to take te free course
+# -0.5*data$age -> older people less likely to learn new language 
+# 20*data$education_level + 5*data$education_level^2  -> higher education more likely to take it?
+#10*data$work_percentage -> more free time more likely to take it 
+#70*data$motivation -> generally more motivated, more likely to take it
+#10*data$social_benefits ->  more time to take the course more likely to take it
+
+d_star <- -200 + 50 * data$zipcode - 0.5*data$age + 20*data$education_level + 5*data$education_level^2  - 10*data$work_percentage + 70*data$motivation + 10*data$social_benefits + rnorm(n, 0, 20) 
 hist(d_star)
 d_self_selection <- d_star
 for (i in 1:n){
@@ -78,17 +87,17 @@ hist(d_self_selection)
 # 4*data$age + 0.05*data$age^2 -> higher age normally means higher sallary 
 # 200*data$gender -> if we "want" gender to have an influence 
 # 100*data$marital_status 
-# - 200*data$social_benefits
+# - 200*data$social_benefits -> people who recieved social benefits probably earn less
 # 30*data$education_level -> higher eductation likely higher income
 # 3*data$years_in_ch -> longer in ch likely higher income
 # 120*data$motivation -> higher motivation likely higher income independent of treatment
 # d_assignment*delta -> treatment effect
 # v -> error term
 
-income_fe_t1_assignment = mean(data$income_fe) + 0.05*(data$income_fe - mean(data$income_fe))  + 4*data$age + 0.05*data$age^2 + 200*data$gender + 100*data$marital_status - 200*data$social_benefits + 30*data$education_level + 3*data$years_in_ch + 120*data$motivation + d_assignment*delta + v
+income_fe_t1_assignment = 4000  + 4*data$age + 0.05*data$age^2 + 200*data$gender + 100*data$marital_status - 200*data$social_benefits + 30*data$education_level + 3*data$years_in_ch + 120*data$motivation + d_assignment*delta + v
 hist(income_fe_t1_assignment, breaks = 100)  
 
-income_fe_t1_self_selection = mean(data$income_fe) + 0.05*(data$income_fe - mean(data$income_fe))  + 4*data$age + 0.05*data$age^2 + 200*data$gender + 100*data$marital_status - 200*data$social_benefits + 30*data$education_level + 3*data$years_in_ch + 120*data$motivation + d_self_selection*delta + v
+income_fe_t1_self_selection = 4000 + 4*data$age + 0.05*data$age^2 + 200*data$gender + 100*data$marital_status - 200*data$social_benefits + 30*data$education_level + 3*data$years_in_ch + 120*data$motivation + d_self_selection*delta + v
 hist(income_fe_t1_self_selection, breaks = 100)  
 
 outcome <- tibble(income_fe_t1_assignment = income_fe_t1_assignment,
@@ -102,6 +111,6 @@ full_data <- data %>% left_join(outcome, by = "id")
 
 # summary statistics for assignment and self selection 
 
-full_data %>% group_by(d_assignment) %>% select(income_fe, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_assignment) %>% summarise_all(mean)
-full_data %>% group_by(d_self_selection) %>% select(income_fe, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_self_selection) %>% summarise_all(mean)
+full_data %>% group_by(d_assignment) %>% select( age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_assignment) %>% summarise_all(mean)
+full_data %>% group_by(d_self_selection) %>% select(age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_self_selection) %>% summarise_all(mean)
 
