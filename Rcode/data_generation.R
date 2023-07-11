@@ -3,12 +3,13 @@
 # This file is used to generate the artificial dataset
 
 
-#### Packages
+#### Packages --------
 library(dplyr)
 library(stats)
 library(mc2d)
 library(extraDistr)
-#### functions
+
+#### Functions --------
 
 # function for a truncated normal distribution
 rtruncnorm <- function(N, mean = 0, sd = 1, a = -Inf, b = Inf) {
@@ -21,12 +22,12 @@ rdu<-function(n,min,max) sample(min:max,n,replace=T) # descrete random uniform d
 # set seed for reproducability
 set.seed(123)
 
-###### Start Code 
+#### Set main parameters--------
 
 n = 150000 #size of data set
 
 
-# first generate the covariates
+#### The Covariates --------
 # I used different distributions than uniform to have them more realistic,
 # but we can also set them all to uniform 
 data = tibble(
@@ -50,15 +51,15 @@ data = tibble(
 
 
 
-# generate the outcome
+#### The Outcome --------
 delta <- 400 # set the treatment effect
 v <- rnorm(n,0,50) #error term
 
-# in an experiment the participants would be assigned to take the course or not randomly
+# Random assignment to treatment a probability of 50%
 d_assignment <- rbinom(n, size = 1, prob = 0.5)
 
-#self selection, self selection into taking german course depends on covariates
-d_star <- -200 + 50 * data$zipcode - 0.5*data$age + 20*data$education_level + 5*data$education_level^2  - 10*data$work_percentage + 70*motivation  + rnorm(n, 0, 20) 
+#self selection, self selection into taking German course depends on covariates
+d_star <- -200 + 50 * data$zipcode - 0.5*data$age + 20*data$education_level + 5*data$education_level^2  - 10*data$work_percentage + 70*data$motivation  + rnorm(n, 0, 20) 
 hist(d_star)
 d_self_selection <- d_star
 for (i in 1:n){
@@ -66,6 +67,7 @@ for (i in 1:n){
     d_self_selection[i] <- 1
   } else {d_self_selection[i] <- 0 }
 }
+hist(d_self_selection)
 
 # Outcone Variable
 
@@ -87,3 +89,4 @@ full_data <- data %>% left_join(outcome, by = "id")
 # summary statistics for assignment and self selection 
 full_data %>% group_by(d_assignment) %>% select(income_fe, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation) %>% summarise_all(mean)
 full_data %>% group_by(d_self_selection) %>% select(income_fe, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation) %>% summarise_all(mean)
+
