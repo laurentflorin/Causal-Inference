@@ -31,7 +31,7 @@ n = 150000 #size of data set
 # I used different distributions than uniform to have them more realistic,
 # but we can also set them all to uniform 
 data = tibble(
-  income = rtruncnorm(n, mean = 2400, sd = 2000, a = 0), #outcome 
+  income = rtruncnorm(n, mean = 2400, sd = 2000, a = 0), #income before treatment 
   age = rpert(n, min = 18, mode = 30, max = 65, shape = 3), #covariate
   motivation = runif(n),
   gender = rdu(n,0,1),
@@ -40,10 +40,10 @@ data = tibble(
   zipcode = rbinom(n, size = 1, prob = 0.3), #either in Zurich or not, Zurich 30%
   country_origin = rbinom(n, size = 1, prob = 0.8), #either schengen or rest of world, most probably from schengen
   social_benefits = rbinom(n, size = 1, prob = 0.1),
-  course_or_not = rbinom(n, size = 1, prob = 0.3),
+  course_or_not = rbinom(n, size = 1, prob = 0.3), #taken a german course before
   years_in_ch = rdu(n, 0,5),
   work_percentage = rbbinom(n, 10, alpha = 3, beta = 1)/10, #most will work close to 100%
-  income_fe = ifelse(work_percentage == 0, income, income/work_percentage),
+  income_fe = ifelse(work_percentage == 0, income, income/work_percentage), #full time equivalent of income
   id = 1:n)
 #no_of_children 
 #age of youngest child
@@ -55,7 +55,7 @@ data = tibble(
 delta <- 400 # set the treatment effect
 v <- rnorm(n,0,50) #error term
 
-# Random assignment to treatment a probability of 50%
+# Random assignment to treatment with a probability of 50%
 d_assignment <- rbinom(n, size = 1, prob = 0.5)
 
 #self selection, self selection into taking German course depends on covariates
@@ -69,7 +69,21 @@ for (i in 1:n){
 }
 hist(d_self_selection)
 
-# Outcone Variable
+# Outcone Variable ------
+# Outcome is the full time equilvalent income at T+1 afer treatment (either receiving a voucher for a free german course or taking the free germant course we have to decide)
+# It depends on the observable covariates as well as the unobservable variable motivation:
+
+# mean(data$income_fe) -> assumption, with out treatment at T+1 the average income is identical to T
+# 0.05*(data$income_fe - mean(data$income_fe)) -> if they earned more at T they likely earn more at T+1 (not sure if necessary)
+# 4*data$age + 0.05*data$age^2 -> higher age normally means higher sallary 
+# 200*data$gender -> if we "want" gender to have an influence 
+# 100*data$marital_status 
+# - 200*data$social_benefits
+# 30*data$education_level -> higher eductation likely higher income
+# 3*data$years_in_ch -> longer in ch likely higher income
+# 120*data$motivation -> higher motivation likely higher income independent of treatment
+# d_assignment*delta -> treatment effect
+# v -> error term
 
 income_fe_t1_assignment = mean(data$income_fe) + 0.05*(data$income_fe - mean(data$income_fe))  + 4*data$age + 0.05*data$age^2 + 200*data$gender + 100*data$marital_status - 200*data$social_benefits + 30*data$education_level + 3*data$years_in_ch + 120*data$motivation + d_assignment*delta + v
 hist(income_fe_t1_assignment, breaks = 100)  
@@ -87,6 +101,7 @@ outcome <- tibble(income_fe_t1_assignment = income_fe_t1_assignment,
 full_data <- data %>% left_join(outcome, by = "id")
 
 # summary statistics for assignment and self selection 
-full_data %>% group_by(d_assignment) %>% select(income_fe, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation) %>% summarise_all(mean)
-full_data %>% group_by(d_self_selection) %>% select(income_fe, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation) %>% summarise_all(mean)
+
+full_data %>% group_by(d_assignment) %>% select(income_fe, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_assignment) %>% summarise_all(mean)
+full_data %>% group_by(d_self_selection) %>% select(income_fe, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_self_selection) %>% summarise_all(mean)
 
