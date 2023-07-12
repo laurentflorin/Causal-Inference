@@ -133,9 +133,9 @@ full_data <- data %>% left_join(outcome, by = "id")
 # Summary Statistics ------
 # For assignment and self selection
 
-full_data %>% group_by(d_assignment) %>% select(d_assignment, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_assignment) %>% summarise_all(mean)
+full_data %>% group_by(d_assignment) %>% select(d_assignment, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation,income_fe_t0, income_fe_t1_assignment) %>% summarise_all(mean)
 full_data %>% count(d_assignment)
-full_data %>% group_by(d_self_selection) %>% select(d_self_selection, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_self_selection) %>% summarise_all(mean)
+full_data %>% group_by(d_self_selection) %>% select(d_self_selection, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation,income_fe_t0, income_fe_t1_self_selection) %>% summarise_all(mean)
 full_data %>% count(d_self_selection)
 hist(full_data$income_fe_t1_self_selection[d_self_selection == 1], freq = FALSE)
 hist(full_data$income_fe_t1_self_selection[d_self_selection == 0], freq = FALSE, col = 2, add = TRUE)
