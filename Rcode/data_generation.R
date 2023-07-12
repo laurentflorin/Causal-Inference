@@ -46,8 +46,8 @@ data <- tibble(
   course_or_not = rbinom(n, size = 1, prob = 0.3), # taken a german course before
   years_in_ch = rdu(n, 0, 5),
   work_percentage = rbbinom(n, 10, alpha = 3, beta = 1) / 10, # most will work close to 100%
-  income_t0 = rtruncnorm(n, mean = 2400, sd = 2000, a = 0), # income before treatment
-  income_fe_t0 = ifelse(work_percentage == 0, income_t0, income_t0 / work_percentage), # full time equivalent of income
+  #income_t0 = rtruncnorm(n, mean = 2400, sd = 2000, a = 0), # income before treatment
+  #income_fe_t0 = ifelse(work_percentage == 0, income_t0, income_t0 / work_percentage), # full time equivalent of income
   id = 1:n,
   has_children = rbinom(n, size = 1, prob = 0.7), # If person has children with 70% of working population already having kids
   no_of_children = ifelse(has_children == 1, round(rtruncnorm(n, mean = 2, sd = 1, a = 0, b = 5),0), 0) # Number of children
@@ -112,8 +112,11 @@ hist(income_fe_t1_assignment, breaks = 100)
 income_fe_t1_self_selection <- 4000 + 4 * data$age + 0.05 * data$age^2 + 200 * data$gender + 100 * data$marital_status - 200 * data$social_benefits + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + d_self_selection * delta + u_0
 hist(income_fe_t1_self_selection, breaks = 100)
 
+income_fe_t0 <- 4000 + 4 * data$age + 0.05 * data$age^2 + 200 * data$gender + 100 * data$marital_status - 200 * data$social_benefits + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + u_0
+
 outcome <- tibble(income_fe_t1_assignment = income_fe_t1_assignment,
                   income_fe_t1_self_selection = income_fe_t1_self_selection,
+                  income_fe_t0 = income_fe_t0,
                   d_assignment = d_assignment,
                   d_self_selection = d_self_selection,
                   id = 1:n)
@@ -123,9 +126,9 @@ full_data <- data %>% left_join(outcome, by = "id")
 
 # summary statistics for assignment and self selection
 
-full_data %>% group_by(d_assignment) %>% select(d_assignment, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_assignment) %>% summarise_all(mean)
+full_data %>% group_by(d_assignment) %>% select(d_assignment, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation,income_fe_t0, income_fe_t1_assignment) %>% summarise_all(mean)
 full_data %>% count(d_assignment)
-full_data %>% group_by(d_self_selection) %>% select(d_self_selection, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_self_selection) %>% summarise_all(mean)
+full_data %>% group_by(d_self_selection) %>% select(d_self_selection, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation,income_fe_t0, income_fe_t1_self_selection) %>% summarise_all(mean)
 full_data %>% count(d_self_selection)
 hist(full_data$income_fe_t1_self_selection[d_self_selection == 1], freq = FALSE)
 hist(full_data$income_fe_t1_self_selection[d_self_selection == 0], freq = FALSE, col = 2, add = TRUE)
