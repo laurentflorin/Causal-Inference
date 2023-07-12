@@ -33,25 +33,26 @@ n <- 150000 #size of data set
 #### The Covariates --------
 # I used different distributions than uniform to have them more realistic,
 # but we can also set them all to uniform
-# I think we dont need income and income_fe in the covariate matrix as it is our outcome -> we are not interested how much they earned before the treatment only how much they earn afeter compared to those who didnt recive the treatment
 data <- tibble(
-  #income = rtruncnorm(n, mean = 2400, sd = 2000, a = 0), #income before treatment
   age = rpert(n, min = 18, mode = 30, max = 65, shape = 3), #covariate
   motivation = runif(n),
+  continue_taking_course = runif(n), #probability of continuing course once they start the course
   gender = rdu(n, 0, 1),
   marital_status = rbinom(n, size = 1, prob = 0.3), # probability of being married 30%
   education_level = rdu(n, 0, 5),
-  zipcode = rbinom(n, size = 1, prob = 0.3), #either in Zurich or not, Zurich 30%
-  country_origin = rbinom(n, size = 1, prob = 0.8), #either schengen or rest of world, most probably from schengen
+  zipcode = rbinom(n, size = 1, prob = 0.3), # either in Zurich or not, Zurich 30%
+  country_origin = rbinom(n, size = 1, prob = 0.8), # either schengen or rest of world, most probably from schengen
   social_benefits = rbinom(n, size = 1, prob = 0.1),
-  course_or_not = rbinom(n, size = 1, prob = 0.3), #taken a german course before
+  course_or_not = rbinom(n, size = 1, prob = 0.3), # taken a german course before
   years_in_ch = rdu(n, 0, 5),
-  work_percentage = rbbinom(n, 10, alpha = 3, beta = 1) / 10, #most will work close to 100%
-  #income_fe = ifelse(work_percentage == 0, income, income/work_percentage), #full time equivalent of income
-  id = 1:n)
-#no_of_children
+  work_percentage = rbbinom(n, 10, alpha = 3, beta = 1) / 10, # most will work close to 100%
+  income_t0 = rtruncnorm(n, mean = 2400, sd = 2000, a = 0), # income before treatment
+  income_fe_t0 = ifelse(work_percentage == 0, income_t0, income_t0 / work_percentage), # full time equivalent of income
+  id = 1:n,
+  has_children = rbinom(n, size = 1, prob = 0.7), # If person has children with 70% of working population already having kids
+  no_of_children = ifelse(has_children == 1, round(rtruncnorm(n, mean = 2, sd = 1, a = 0, b = 5),0), 0) # Number of children
+)
 #age of youngest child
-#continue_taking_course
 
 
 
@@ -88,7 +89,7 @@ for (i in 1:n){
 }
 hist(d_self_selection)
 
-# Outcone Variable ------
+# Outcome Variable ------
 # Outcome is the full time equilvalent income at T+1 afer treatment (either receiving a voucher for a free german course or taking the free germant course we have to decide)
 # It depends on the observable covariates as well as the unobservable variable motivation:
 # equation (1) of the assignment
