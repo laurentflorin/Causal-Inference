@@ -73,7 +73,7 @@ d_assignment <- rbinom(n, size = 1, prob = 0.5)
 #70*data$motivation -> generally more motivated, more likely to take it
 #10*data$social_benefits ->  more time to take the course more likely to take it
 
-d_star <- -200 + 50 * data$zipcode - 0.5*data$age + 20*data$education_level + 5*data$education_level^2  - 10*data$work_percentage + 70*data$motivation + 10*data$social_benefits + rnorm(n, 0, 20) 
+d_star <- -100 + 50 * data$zipcode - 0.5*data$age + 5*data$education_level - 5*data$work_percentage + 90*data$motivation + 10*data$social_benefits + rnorm(n, 0, 20) 
 hist(d_star)
 d_self_selection <- d_star
 for (i in 1:n){
@@ -117,9 +117,10 @@ full_data <- data %>% left_join(outcome, by = "id")
 
 # summary statistics for assignment and self selection 
 
-full_data %>% group_by(d_assignment) %>% select( age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_assignment) %>% summarise_all(mean)
-full_data %>% group_by(d_self_selection) %>% select(age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_self_selection) %>% summarise_all(mean)
-
+full_data %>% group_by(d_assignment) %>% select(d_assignment, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_assignment) %>% summarise_all(mean)
+full_data %>% count(d_assignment)
+full_data %>% group_by(d_self_selection) %>% select(d_self_selection,age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_self_selection) %>% summarise_all(mean)
+full_data %>% count(d_self_selection)
 hist(full_data$income_fe_t1_self_selection[d_self_selection == 1 ], freq = F)
 hist(full_data$income_fe_t1_self_selection[d_self_selection == 0 ],freq = F, col = 2, add = T)
 
