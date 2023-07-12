@@ -141,4 +141,7 @@ hist(full_data$income_fe_t1_self_selection[d_self_selection == 1], freq = FALSE)
 hist(full_data$income_fe_t1_self_selection[d_self_selection == 0], freq = FALSE, col = 2, add = TRUE)
 
 # Export data as CSV -------
+# Check if data directory already exists otherwise create
+dir.create(file.path("Data"), showWarnings = FALSE)
+
 write.csv2(full_data, file = "Data/dataset.csv")
