@@ -89,6 +89,13 @@ for (i in 1:n){
 }
 hist(d_self_selection)
 
+# Define who is in fact treated
+# in this case, who takes the german course
+# those with a very low d_star (< -75) are Never-Takers
+# those with a positive d_star are Always-Takers
+# we assume monotonicity and no defiers
+d_treated <- ifelse(d_star > -75 & d_assignment == 1, ifelse(d_self_selection == 1, 1, 0), 0)
+
 # Outcome Variable ------
 # Outcome is the full time equivalent income at T+1 afer treatment
 # The treatment is receiving a voucher for a free german course
