@@ -46,18 +46,13 @@ data <- tibble(
   course_or_not = rbinom(n, size = 1, prob = 0.3), # taken a german course before
   years_in_ch = rdu(n, 0, 5),
   work_percentage = rbbinom(n, 10, alpha = 3, beta = 1) / 10, # most will work close to 100%
-  income_t0 = rtruncnorm(n, mean = 2400, sd = 2000, a = 0), # income before treatment
-  income_fe_t0 = ifelse(work_percentage == 0, income_t0, income_t0 / work_percentage), # full time equivalent of income
-  arrival_age = round(rpert(n, min = 18, mode = 30, max = 65, shape = 3), 0), # Age when they arrived in Zipcode
+  #income_t0 = rtruncnorm(n, mean = 2400, sd = 2000, a = 0), # income before treatment
+  #income_fe_t0 = ifelse(work_percentage == 0, income_t0, income_t0 / work_percentage), # full time equivalent of income
   id = 1:n,
   has_children = rbinom(n, size = 1, prob = 0.7), # If person has children with 70% of working population already having kids
   no_of_children = ifelse(has_children == 1, round(rtruncnorm(n, mean = 2, sd = 1, a = 0, b = 5), 0), 0) # Number of children
 )
 #age of youngest child
-
-data$arrival_age <- ifelse(data$arrival_age>data$age, data$age-round(rtruncnorm(n, mean = 3 , sd = 2, a = 0, b = 10),0), data$arrival_age) # Make sure arrival age is before current age
-data$arrival_since <- data$age - data$arrival_age
-
 #### The Outcome --------
 
 u_0 <- rnorm(n, 0, 50) #error term U_i(0)
@@ -116,15 +111,18 @@ hist(d_self_selection)
 # d_assignment*delta -> treatment effect
 # v -> error term
 
-# Equation (2)
-income_fe_t1_assignment <- 4000  + 4 * data$age + 0.05 * data$age^2 + 200 * data$gender + 100 * data$marital_status - 200 * data$social_benefits + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + 160 * data$continue_taking_course + 40 * data$arrival_since^2 + d_assignment * delta + 80 * data$arrival_since * d_assignment + u_0
+# Equation (1)
+income_fe_t1_assignment <- 4000  + 4 * data$age + 0.05 * data$age^2 + 200 * data$gender + 100 * data$marital_status - 200 * data$social_benefits + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + 160 * data$continue_taking_course + d_assignment * delta + 80 * data$years_in_ch * d_assignment + u_0
 hist(income_fe_t1_assignment, breaks = 100)
 
-income_fe_t1_self_selection <- 4000 + 4 * data$age + 0.05 * data$age^2 + 200 * data$gender + 100 * data$marital_status - 200 * data$social_benefits + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + 160 * data$continue_taking_course + 40 * data$arrival_since^2 + d_self_selection * delta + 80 * data$arrival_since * d_self_selection + u_0
+income_fe_t1_self_selection <- 4000 + 4 * data$age + 0.05 * data$age^2 + 200 * data$gender + 100 * data$marital_status - 200 * data$social_benefits + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + 160 * data$continue_taking_course + d_self_selection * delta + 80 * data$years_in_ch * d_self_selection + u_0
 hist(income_fe_t1_self_selection, breaks = 100)
+
+income_fe_t0 <- 4000 + 4 * data$age + 0.05 * data$age^2 + 200 * data$gender + 100 * data$marital_status - 200 * data$social_benefits + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + u_0
 
 outcome <- tibble(income_fe_t1_assignment = income_fe_t1_assignment,
                   income_fe_t1_self_selection = income_fe_t1_self_selection,
+                  income_fe_t0 = income_fe_t0,
                   d_assignment = d_assignment,
                   d_self_selection = d_self_selection,
                   id = 1:n)
