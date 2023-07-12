@@ -1,6 +1,7 @@
 ###### Data Generation
 
 # This file is used to generate the artificial dataset
+# It does what is describet in Exercise 2 and 3a
 
 
 #### Packages --------
@@ -53,13 +54,17 @@ data = tibble(
 
 
 #### The Outcome --------
-delta <- 400 # set the treatment effect
-v <- rnorm(n,0,50) #error term
+
+u_0 <- rnorm(n,0,50) #error term U_i(0)
+u_1 <- rnorm(n,0,50) #error term U_i(1)
+
+delta <- 400 + u_1 - u_0  # set the treatment effect: equation (4) of the assignment
+
 
 # Random assignment to treatment with a probability of 50%
 d_assignment <- rbinom(n, size = 1, prob = 0.5)
 
-#self selection, self selection into taking German course depends on covariates:
+#self selection, self selection into taking German course depends on covariates: equation (2) and (3) of the assignment
 
 #50 * data$zipcode -> if in zurich more likely to take te free course
 # -0.5*data$age -> older people less likely to learn new language 
@@ -81,6 +86,7 @@ hist(d_self_selection)
 # Outcone Variable ------
 # Outcome is the full time equilvalent income at T+1 afer treatment (either receiving a voucher for a free german course or taking the free germant course we have to decide)
 # It depends on the observable covariates as well as the unobservable variable motivation:
+# equation (1) of the assignment
 
 # mean(data$income_fe) -> assumption, with out treatment at T+1 the average income is identical to T
 # 0.05*(data$income_fe - mean(data$income_fe)) -> if they earned more at T they likely earn more at T+1 (not sure if necessary)
@@ -94,10 +100,10 @@ hist(d_self_selection)
 # d_assignment*delta -> treatment effect
 # v -> error term
 
-income_fe_t1_assignment = 4000  + 4*data$age + 0.05*data$age^2 + 200*data$gender + 100*data$marital_status - 200*data$social_benefits + 30*data$education_level + 3*data$years_in_ch + 120*data$motivation + d_assignment*delta + v
+income_fe_t1_assignment = 4000  + 4*data$age + 0.05*data$age^2 + 200*data$gender + 100*data$marital_status - 200*data$social_benefits + 30*data$education_level + 3*data$years_in_ch + 120*data$motivation + d_assignment*delta + u_0
 hist(income_fe_t1_assignment, breaks = 100)  
 
-income_fe_t1_self_selection = 4000 + 4*data$age + 0.05*data$age^2 + 200*data$gender + 100*data$marital_status - 200*data$social_benefits + 30*data$education_level + 3*data$years_in_ch + 120*data$motivation + d_self_selection*delta + v
+income_fe_t1_self_selection = 4000 + 4*data$age + 0.05*data$age^2 + 200*data$gender + 100*data$marital_status - 200*data$social_benefits + 30*data$education_level + 3*data$years_in_ch + 120*data$motivation + d_self_selection*delta + u_0
 hist(income_fe_t1_self_selection, breaks = 100)  
 
 outcome <- tibble(income_fe_t1_assignment = income_fe_t1_assignment,
@@ -114,3 +120,8 @@ full_data <- data %>% left_join(outcome, by = "id")
 full_data %>% group_by(d_assignment) %>% select( age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_assignment) %>% summarise_all(mean)
 full_data %>% group_by(d_self_selection) %>% select(age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation, income_fe_t1_self_selection) %>% summarise_all(mean)
 
+hist(full_data$income_fe_t1_self_selection[d_self_selection == 1 ], freq = F)
+hist(full_data$income_fe_t1_self_selection[d_self_selection == 0 ],freq = F, col = 2, add = T)
+
+#Save Data as CSV
+write.csv2(full_data,file = "Data/dataset.csv")
