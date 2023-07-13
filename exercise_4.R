@@ -16,5 +16,6 @@ data <- read.csv2("Data/dataset.csv")
 
 # 4a Instrumental Variables
 
-iv_reg = ivreg(income_fe_t1_assignment ~ d_self_selection + age + gender | age + gender + d_assignment, data=data)
+iv_reg = ivreg(income_fe_t1_assignment ~ d_treated + age + gender | age + gender + d_assignment, data=data)
 summary(iv_reg)
+  
