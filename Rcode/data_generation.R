@@ -132,6 +132,7 @@ outcome <- tibble(income_fe_t1_assignment = income_fe_t1_assignment,
                   income_fe_t0 = income_fe_t0,
                   d_assignment = d_assignment,
                   d_self_selection = d_self_selection,
+                  d_treated = d_treated,
                   id = 1:n)
 
 
