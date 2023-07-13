@@ -34,7 +34,7 @@ n <- 150000 #size of data set
 # I used different distributions than uniform to have them more realistic,
 # but we can also set them all to uniform
 data <- tibble(
-  age = rpert(n, min = 18, mode = 30, max = 65, shape = 3), #covariate
+  age = round(rpert(n, min = 18, mode = 30, max = 65, shape = 3),0), # age
   motivation = runif(n),
   continue_taking_course = runif(n), #probability of continuing course once they start the course
   gender = rdu(n, 0, 1),
@@ -50,18 +50,15 @@ data <- tibble(
   #income_fe_t0 = ifelse(work_percentage == 0, income_t0, income_t0 / work_percentage), # full time equivalent of income
   id = 1:n,
   has_children = rbinom(n, size = 1, prob = 0.7), # If person has children with 70% of working population already having kids
-  no_of_children = ifelse(has_children == 1, round(rtruncnorm(n, mean = 2, sd = 1, a = 0, b = 5),0), 0) # Number of children
+  no_of_children = ifelse(has_children == 1, round(rtruncnorm(n, mean = 2, sd = 1, a = 0, b = 5), 0), 0) # Number of children
 )
 #age of youngest child
-
-
-
 #### The Outcome --------
 
 u_0 <- rnorm(n, 0, 50) #error term U_i(0)
 u_1 <- rnorm(n, 0, 50) #error term U_i(1)
 
-# set the treatment effect: equation (4) of the assignment
+# Equation (4): Treatment Effect
 delta <- 400 + u_1 - u_0
 
 
@@ -77,8 +74,11 @@ d_assignment <- rbinom(n, size = 1, prob = 0.5)
 #70*data$motivation -> generally more motivated, more likely to take it
 #10*data$social_benefits ->  more time to take the course more likely to take it
 
+# Equation (2)
 d_star <- -100 + 50 * data$zipcode - 0.5 * data$age + 5 * data$education_level - 5 * data$work_percentage + 90 * data$motivation + 10 * data$social_benefits + rnorm(n, 0, 20)
 hist(d_star)
+
+# Equation (3)
 d_self_selection <- d_star
 for (i in 1:n){
   if (d_star[i] > 0) {
@@ -89,10 +89,18 @@ for (i in 1:n){
 }
 hist(d_self_selection)
 
+# Define who is in fact treated
+# in this case, who takes the german course
+# those with a very low d_star (< -75) are Never-Takers
+# those with a positive d_star are Always-Takers
+# we assume monotonicity and no defiers
+d_treated <- ifelse(d_star > -75 & d_assignment == 1, ifelse(d_self_selection == 1, 1, 0), 0)
+
 # Outcome Variable ------
-# Outcome is the full time equilvalent income at T+1 afer treatment (either receiving a voucher for a free german course or taking the free germant course we have to decide)
-# It depends on the observable covariates as well as the unobservable variable motivation:
-# equation (1) of the assignment
+# Outcome is the full time equivalent income at T+1 afer treatment
+# The treatment is receiving a voucher for a free german course
+
+# The outcome depends on the observable covariates as well as the unobservable variable motivation:
 
 # mean(data$income_fe) -> assumption, with out treatment at T+1 the average income is identical to T
 # 0.05*(data$income_fe - mean(data$income_fe)) -> if they earned more at T they likely earn more at T+1 (not sure if necessary)
@@ -103,13 +111,18 @@ hist(d_self_selection)
 # 30*data$education_level -> higher eductation likely higher income
 # 3*data$years_in_ch -> longer in ch likely higher income
 # 120*data$motivation -> higher motivation likely higher income independent of treatment
+# 160*data$continue_taking_course -> continues with course likely higher income independent of treatment
+# 40*data$arrival_since^2 -> the longer a person is in Switzerland the higher the income
+# 80*data$arrival_since *d_self_selection -> the treatment effect is larger for those longer in Switzerland
+
 # d_assignment*delta -> treatment effect
 # v -> error term
 
-income_fe_t1_assignment <- 4000  + 4 * data$age + 0.05 * data$age^2 + 200 * data$gender + 100 * data$marital_status - 200 * data$social_benefits + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + d_assignment * delta + u_0
+# Equation (1)
+income_fe_t1_assignment <- 4000  + 4 * data$age + 0.05 * data$age^2 + 200 * data$gender + 100 * data$marital_status - 200 * data$social_benefits + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + 160 * data$continue_taking_course + d_assignment * delta + 80 * data$years_in_ch * d_assignment + u_0
 hist(income_fe_t1_assignment, breaks = 100)
 
-income_fe_t1_self_selection <- 4000 + 4 * data$age + 0.05 * data$age^2 + 200 * data$gender + 100 * data$marital_status - 200 * data$social_benefits + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + d_self_selection * delta + u_0
+income_fe_t1_self_selection <- 4000 + 4 * data$age + 0.05 * data$age^2 + 200 * data$gender + 100 * data$marital_status - 200 * data$social_benefits + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + 160 * data$continue_taking_course + d_self_selection * delta + 80 * data$years_in_ch * d_self_selection + u_0
 hist(income_fe_t1_self_selection, breaks = 100)
 
 income_fe_t0 <- 4000 + 4 * data$age + 0.05 * data$age^2 + 200 * data$gender + 100 * data$marital_status - 200 * data$social_benefits + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + u_0
@@ -124,7 +137,8 @@ outcome <- tibble(income_fe_t1_assignment = income_fe_t1_assignment,
 
 full_data <- data %>% left_join(outcome, by = "id")
 
-# summary statistics for assignment and self selection
+# Summary Statistics ------
+# For assignment and self selection
 
 full_data %>% group_by(d_assignment) %>% select(d_assignment, age, gender, marital_status, social_benefits, education_level, years_in_ch, motivation,income_fe_t0, income_fe_t1_assignment) %>% summarise_all(mean)
 full_data %>% count(d_assignment)
@@ -133,5 +147,8 @@ full_data %>% count(d_self_selection)
 hist(full_data$income_fe_t1_self_selection[d_self_selection == 1], freq = FALSE)
 hist(full_data$income_fe_t1_self_selection[d_self_selection == 0], freq = FALSE, col = 2, add = TRUE)
 
-#Save Data as CSV
+# Export data as CSV -------
+# Check if data directory already exists otherwise create
+dir.create(file.path("Data"), showWarnings = FALSE)
+
 write.csv2(full_data, file = "Data/dataset.csv")
