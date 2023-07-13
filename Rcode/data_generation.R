@@ -9,6 +9,7 @@ library(dplyr)
 library(stats)
 library(mc2d)
 library(extraDistr)
+library(ggplot2)
 
 #### Functions --------
 
@@ -24,6 +25,8 @@ rdu <- function(n, min, max) sample(min:max, n, replace = TRUE)
 
 # set seed for reproducability
 set.seed(123)
+
+my_colors <- RColorBrewer::brewer.pal(4, "Set1")
 
 #### Set main parameters--------
 
@@ -78,7 +81,18 @@ d_assignment <- rbinom(n, size = 1, prob = 0.5)
 # Selection Rule 2
 # Equation (2)
 d_star <- -50 - 0.5 * data$age - data$education_level - 5 * data$work_percentage + 90 * data$motivation - 20*data$distance +  rnorm(n, 0, 20)
-hist(d_star)
+
+# Histogram
+ggplot() + 
+geom_histogram(aes(d_star),binwidth=10, colour = "white", fill = my_colors[2]) +
+scale_x_continuous(name="Value") +
+scale_y_continuous(name="Frequency") +
+theme_bw(base_size = 16)
+
+# Check if data directory already exists otherwise create
+dir.create(file.path("Graphs"), showWarnings = FALSE)
+
+ggsave("Graphs/d_star_distribution.png", plot = last_plot(), width = 8, height = 6)
 
 # Equation (3)
 d_self_selection <- d_star
@@ -89,7 +103,14 @@ for (i in 1:n){
     d_self_selection[i] <- 0
     }
 }
-hist(d_self_selection)
+# Histogram
+ggplot() + 
+geom_histogram(aes(d_self_selection), colour = "white", fill = my_colors[2]) +
+scale_x_continuous(name="Value") +
+scale_y_continuous(name="Frequency") +
+theme_bw(base_size = 16)
+
+ggsave("Graphs/d_self_distribution.png", plot = last_plot(), width = 8, height = 6)
 
 # Define who is in fact treated
 # in this case, who takes the german course
@@ -122,13 +143,41 @@ hist(d_self_selection)
 
 # Equation (1)
 income_fe_t1_assignment <- 4000  + 4 * data$age + 0.05 * data$age^2  + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation  + d_assignment * delta + u_0
-hist(income_fe_t1_assignment, breaks = 100)
+
+# Histogram
+ggplot() + 
+geom_histogram(aes(income_fe_t1_assignment),binwidth=10, colour = "white", fill = my_colors[2]) +
+scale_x_continuous(name="Income") +
+scale_y_continuous(name="Frequency") +
+theme_bw(base_size = 16)
+ggsave("Graphs/income_t1_assignment_distribution.png", plot = last_plot(), width = 8, height = 6)
+
+#hist(income_fe_t1_assignment, breaks = 100)
 
 income_fe_t1_self_selection <- 4000  + 4 * data$age + 0.05 * data$age^2  + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation  + d_self_selection * delta + u_0
-hist(income_fe_t1_self_selection, breaks = 100)
+
+# Histogram
+ggplot() + 
+geom_histogram(aes(income_fe_t1_self_selection),binwidth=10, colour = "white", fill = my_colors[2]) +
+scale_x_continuous(name="Income") +
+scale_y_continuous(name="Frequency") +
+theme_bw(base_size = 16)
+ggsave("Graphs/income_t1_self_distribution.png", plot = last_plot(), width = 8, height = 6)
+
+#hist(income_fe_t1_self_selection, breaks = 100)
+
 
 income_fe_t0 <- 4000  + 4 * data$age + 0.05 * data$age^2  + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + u_0
-hist(income_fe_t0, breaks = 100)
+
+# Histogram
+ggplot() + 
+geom_histogram(aes(income_fe_t0),binwidth=10, colour = "white", fill = my_colors[2]) +
+scale_x_continuous(name="Income") +
+scale_y_continuous(name="Frequency") +
+theme_bw(base_size = 16)
+ggsave("Graphs/income_t0.png", plot = last_plot(), width = 8, height = 6)
+
+#hist(income_fe_t0, breaks = 100)
 
 
 outcome <- tibble(income_fe_t1_assignment = income_fe_t1_assignment,
@@ -148,8 +197,19 @@ full_data %>% group_by(d_assignment) %>% select(d_assignment, age, gender, marit
 full_data %>% count(d_assignment)
 full_data %>% group_by(d_self_selection) %>% select(d_self_selection, age, gender, marital_status, education_level, years_in_ch, motivation,income_fe_t0, income_fe_t1_self_selection) %>% summarise_all(mean)
 full_data %>% count(d_self_selection)
-hist(full_data$income_fe_t1_self_selection[d_self_selection == 1], freq = FALSE)
-hist(full_data$income_fe_t1_self_selection[d_self_selection == 0], freq = FALSE, col = 2, add = TRUE)
+
+# Histogram
+ggplot(full_data, aes(income_fe_t1_self_selection, y=..density.., fill = factor(d_self_selection))) + 
+geom_histogram(position = "identity",bins = 30, colour = "white", alpha = 0.8) +
+scale_x_continuous(name="Income") +
+scale_y_continuous(name="Density") +
+theme_bw(base_size = 16) +
+scale_fill_manual(values = my_colors[1:2], name = "Self-Selection", labels = c("No", "Yes"))
+
+ggsave("Graphs/Income_By_Self_Selection.png", plot = last_plot(), width = 8, height = 6)
+
+#hist(full_data$income_fe_t1_self_selection[d_self_selection == 1], freq = FALSE)
+#hist(full_data$income_fe_t1_self_selection[d_self_selection == 0], freq = FALSE, col = 2, add = TRUE)
 
 # Export data as CSV -------
 # Check if data directory already exists otherwise create
