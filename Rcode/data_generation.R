@@ -41,7 +41,7 @@ data <- tibble(
   motivation = runif(n),
   #continue_taking_course = runif(n), #probability of continuing course once they start the course
   gender = rdu(n, 0, 1),
-  distance = runif(n,0,1),
+  distance = runif(n, 0, 1),
   marital_status = rbinom(n, size = 1, prob = 0.3), # probability of being married 30%
   education_level = rdu(n, 0, 5),
   #zipcode = rbinom(n, size = 1, prob = 0.3), # either in Zurich or not, Zurich 30%
@@ -54,6 +54,8 @@ data <- tibble(
   #income_fe_t0 = ifelse(work_percentage == 0, income_t0, income_t0 / work_percentage), # full time equivalent of income
   id = 1:n,
   has_children = rbinom(n, size = 1, prob = 0.7), # If person has children with 70% of working population already having kids
+  children_german_primary = ifelse(has_children == 1, rbinom(n, size = 1, prob = 0.3), 0), # Whether they have children in German-speaking primary school
+  children_english_primary = ifelse(has_children == 1 & children_german_primary == 0, rbinom(n, size = 1, prob = 0.3), 0), # Whether those without children in German primary have children in another primary school
   no_of_children = ifelse(has_children == 1, round(rtruncnorm(n, mean = 2, sd = 1, a = 0, b = 5), 0), 0) # Number of children
 )
 #age of youngest child
@@ -80,7 +82,7 @@ d_assignment <- rbinom(n, size = 1, prob = 0.5)
 
 # Selection Rule 2
 # Equation (2)
-d_star <- -50 - 0.5 * data$age - data$education_level - 5 * data$work_percentage + 90 * data$motivation - 20*data$distance +  rnorm(n, 0, 20)
+d_star <- -50 - 0.5 * data$age - data$education_level - 5 * data$work_percentage + 90 * data$motivation - 20 * data$distance + 40 * data$children_german_primary + rnorm(n, 0, 20)
 
 # Histogram
 ggplot() + 
@@ -138,6 +140,7 @@ ggsave("Graphs/d_self_distribution.png", plot = last_plot(), width = 8, height =
 # 40*data$arrival_since^2 -> the longer a person is in Switzerland the higher the income
 # 80*data$arrival_since *d_self_selection -> the treatment effect is larger for those longer in Switzerland
 
+
 # d_assignment*delta -> treatment effect
 # v -> error term
 
@@ -154,7 +157,7 @@ ggsave("Graphs/income_t1_assignment_distribution.png", plot = last_plot(), width
 
 #hist(income_fe_t1_assignment, breaks = 100)
 
-income_fe_t1_self_selection <- 4000  + 4 * data$age + 0.05 * data$age^2  + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation  + d_self_selection * delta + u_0
+income_fe_t1_self_selection <- 4000  + 4 * data$age + 0.05 * data$age^2  + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + 20 * data$children_german_primary + 20 * data$children_english_primary + d_self_selection * delta + u_0
 
 # Histogram
 ggplot() + 
