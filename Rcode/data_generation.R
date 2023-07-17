@@ -99,7 +99,7 @@ ggsave("Graphs/d_star_distribution.png", plot = last_plot(), width = 8, height =
 # Equation (3)
 d_self_selection <- d_star
 for (i in 1:n){
-  if ((d_star[i] > 0 & data$distance[i] <= 0.2) |(d_star[i] > 0 & data$distance[i] > 0.2 & data$distance[i] <= 0.3 & data$motivation[i] > 0.6) |(d_star[i] > 0 & data$distance[i] > 0.3 & data$motivation[i] > 0.85)) {
+  if ((d_star[i] > 0 & data$distance[i] <= 0.4) |(d_star[i] > 0 & data$distance[i] > 0.4 & data$motivation[i] > 0.85)) {
     d_self_selection[i] <- 1
   } else {
     d_self_selection[i] <- 0
