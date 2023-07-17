@@ -3,7 +3,7 @@
 # This file is used to generate the artificial dataset
 # It does what is describet in Exercise 2 and 3a
 
-
+rm(list=ls()); gc()
 #### Packages --------
 library(dplyr)
 library(stats)
@@ -82,7 +82,7 @@ d_assignment <- rbinom(n, size = 1, prob = 0.5)
 
 # Selection Rule 2
 # Equation (2)
-d_star <- -50 - 0.5 * data$age - data$education_level - 5 * data$work_percentage + 90 * data$motivation - 20 * data$distance + 40 * data$children_german_primary + rnorm(n, 0, 20)
+d_star <- -50 -  data$age - data$education_level - 5 * data$work_percentage + 90 * data$motivation - 20 * data$distance + 40 * data$children_german_primary + rnorm(n, 0, 20)
 
 # Histogram
 ggplot() + 
@@ -99,7 +99,7 @@ ggsave("Graphs/d_star_distribution.png", plot = last_plot(), width = 8, height =
 # Equation (3)
 d_self_selection <- d_star
 for (i in 1:n){
-  if ((d_star[i] > 0 & data$distance[i] < 0.3) |(d_star[i] > 0 & data$distance[i] >= 0.3 & data$motivation[i] > 0.8)) {
+  if ((d_star[i] > 0 & data$distance[i] <= 0.2) |(d_star[i] > 0 & data$distance[i] > 0.2 & data$distance[i] <= 0.3 & data$motivation[i] > 0.6) |(d_star[i] > 0 & data$distance[i] > 0.3 & data$motivation[i] > 0.85)) {
     d_self_selection[i] <- 1
   } else {
     d_self_selection[i] <- 0
@@ -113,6 +113,8 @@ scale_y_continuous(name="Frequency") +
 theme_bw(base_size = 16)
 
 ggsave("Graphs/d_self_distribution.png", plot = last_plot(), width = 8, height = 6)
+
+
 
 # Define who is in fact treated
 # in this case, who takes the german course
@@ -219,3 +221,6 @@ ggsave("Graphs/Income_By_Self_Selection.png", plot = last_plot(), width = 8, hei
 dir.create(file.path("Data"), showWarnings = FALSE)
 
 write.csv2(full_data, file = "Data/dataset.csv")
+
+
+
