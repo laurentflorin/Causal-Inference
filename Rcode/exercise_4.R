@@ -74,8 +74,8 @@ ggplot(distance_bins, aes(x = distance_binned, y = propoprtion_treatment)) +
 #-------------------------------------------------------------------------------
 # Outcome: Income
 # Running variable: distance to ZCH
-# Cutoff value: 0.3 
-cutoff_value <- 0.3
+# Cutoff value: 0.4 
+cutoff_value <- 0.4
 
 ### FUZZY plot 
 
