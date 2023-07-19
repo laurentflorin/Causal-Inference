@@ -68,6 +68,6 @@ panel_data <- panel_data %>%
 
 # Increase income by 10% for Zurich (distance < 0.2) after 2020
 panel_data <- panel_data %>%
-  mutate(income = ifelse(year >= 2020 & distance < 0.2, income * 1.1, income))  
+  mutate(income = ifelse(year >= 2020 & distance < 0.2, income * 1.1, income))
 
 write.csv2(panel_data, file = "Data/paneldata.csv")
