@@ -157,3 +157,29 @@ model_self_select <- lm(income_fe_t1_self_selection ~ age + age2  + education_le
 summary(model_self_select)
 
 xtable::xtable(summary(model_self_select),  caption = "OLS regression table for self selection into treatment")
+
+
+
+# Robust Standard Errors
+cov.fit1 <- vcovHC(model_assignment, type = "HC")
+rob.std.err1 <- sqrt(diag(cov.fit1))
+cov.fit2 <- vcovHC(model_self_select, type = "HC")
+rob.std.err2 <- sqrt(diag(cov.fit2))
+
+# Rename d_assignment and d_self_selection to "d" such that they can be shown on same line in stargazer
+
+names(model_assignment$coefficients)<- c("(Intercept)", "age", "age2", "eduation_level", "years_in_ch", "d")
+names(model_self_select$coefficients)<- c("(Intercept)", "age", "age2", "eduation_level", "years_in_ch", "d")
+
+
+stargazer(model_assignment, model_self_select,
+ se = list(rob.std.err1, rob.std.err2),
+ title = "OLS Regression Results",
+ align = TRUE,
+ dep.var.labels = c("Full Time Equilvalent Income T+1"),
+ covariate.labels = c("Age","Age2","Education Level", "Years in Switzerland", "Treatment", "Constant"),
+ column.labels = c("Assignment ", "Self Selection"),
+ dep.var.caption = "",
+ model.numbers = FALSE,
+ out = "Tables/ols.tex",
+ label = "tab:ols")
