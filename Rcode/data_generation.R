@@ -40,14 +40,14 @@ data <- tibble(
   age = round(rpert(n, min = 18, mode = 30, max = 65, shape = 3),0), # age
   motivation = runif(n),
   #continue_taking_course = runif(n), #probability of continuing course once they start the course
-  gender = rdu(n, 0, 1),
+  gender = rbinom(n, size = 1, prob = 0.5),
   distance = runif(n, 0, 1),
-  marital_status = rbinom(n, size = 1, prob = 0.3), # probability of being married 30%
+  #marital_status = rbinom(n, size = 1, prob = 0.3), # probability of being married 30%
   education_level = rdu(n, 0, 5),
   #zipcode = rbinom(n, size = 1, prob = 0.3), # either in Zurich or not, Zurich 30%
-  country_origin = rbinom(n, size = 1, prob = 0.8), # either schengen or rest of world, most probably from schengen
+  #country_origin = rbinom(n, size = 1, prob = 0.8), # either schengen or rest of world, most probably from schengen
   #social_benefits = rbinom(n, size = 1, prob = 0.1),
-  course_or_not = rbinom(n, size = 1, prob = 0.3), # taken a german course before
+  #course_or_not = rbinom(n, size = 1, prob = 0.3), # taken a german course before
   years_in_ch = rdu(n, 0, 5),
   work_percentage = rbbinom(n, 10, alpha = 3, beta = 1) / 10, # most will work close to 100%
   #income_t0 = rtruncnorm(n, mean = 2400, sd = 2000, a = 0), # income before treatment
@@ -56,7 +56,8 @@ data <- tibble(
   has_children = rbinom(n, size = 1, prob = 0.7), # If person has children with 70% of working population already having kids
   children_german_primary = ifelse(has_children == 1, rbinom(n, size = 1, prob = 0.3), 0), # Whether they have children in German-speaking primary school
   children_english_primary = ifelse(has_children == 1 & children_german_primary == 0, rbinom(n, size = 1, prob = 0.3), 0), # Whether those without children in German primary have children in another primary school
-  no_of_children = ifelse(has_children == 1, round(rtruncnorm(n, mean = 2, sd = 1, a = 0, b = 5), 0), 0) # Number of children
+  no_of_children = ifelse(has_children == 1, round(rtruncnorm(n, mean = 2, sd = 1, a = 0, b = 5), 0), 0), # Number of children,
+  swiss_working_culture = rbinom(n, size = 1, prob = 0.6)
 )
 #age of youngest child
 #### The Outcome --------
@@ -159,7 +160,7 @@ ggsave("Graphs/income_t1_assignment_distribution.png", plot = last_plot(), width
 
 #hist(income_fe_t1_assignment, breaks = 100)
 
-income_fe_t1_self_selection <- 4000  + 4 * data$age + 0.05 * data$age^2  + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + 20 * data$children_german_primary + 20 * data$children_english_primary + d_self_selection * delta + u_0
+income_fe_t1_self_selection <- 4000  + 4 * data$age + 0.05 * data$age^2  + 30 * data$education_level + 3 * data$years_in_ch + 120 * data$motivation + d_self_selection * delta + u_0
 
 # Histogram
 ggplot() + 
@@ -198,9 +199,9 @@ full_data <- data %>% left_join(outcome, by = "id")
 # Summary Statistics ------
 # For assignment and self selection
 
-full_data %>% group_by(d_assignment) %>% select(d_assignment, age, gender, marital_status, education_level, years_in_ch, motivation,income_fe_t0, income_fe_t1_assignment) %>% summarise_all(mean)
+full_data %>% group_by(d_assignment) %>% select(d_assignment, age, gender, education_level, years_in_ch, motivation,income_fe_t0, income_fe_t1_assignment) %>% summarise_all(mean)
 full_data %>% count(d_assignment)
-full_data %>% group_by(d_self_selection) %>% select(d_self_selection, age, gender, marital_status, education_level, years_in_ch, motivation,income_fe_t0, income_fe_t1_self_selection) %>% summarise_all(mean)
+full_data %>% group_by(d_self_selection) %>% select(d_self_selection, age, gender, education_level, years_in_ch, motivation,income_fe_t0, income_fe_t1_self_selection) %>% summarise_all(mean)
 full_data %>% count(d_self_selection)
 
 # Histogram

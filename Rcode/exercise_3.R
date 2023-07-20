@@ -8,6 +8,13 @@ library(tidyr)
 library(stats)
 library(qwraps2)
 library(cobalt)
+library(xtable)
+library(stargazer)
+library(data.table)
+library(vtable)
+
+
+devtools::source_gist("c4d1089a501d3567be9fb784b1c5a6ab") #function for nice descriptive table
 
 # set seed for reproducability
 set.seed(123)
@@ -15,145 +22,79 @@ set.seed(123)
 # load data
 data <- read.csv2("Data/dataset.csv")
 
+data <- data %>% mutate(children_german_primary = as.factor(children_german_primary))
+
 # 3a is done in the data generation script
 
-# 3b Balance of dataset ------------------
 
 # First we generate a summary table for assignment and self selection reporting the mean and the standard error
 # of the covariates and the outcome
 
 # summary statistics we want
-our_summary_assignment <-
-  list("Age" =
-         list("mean"       = ~ round(mean(age),3),
-              "se"       = ~ round(sd(age)/sqrt(length(age)),3)),
-       "Gender" =
-         list("mean"       = ~ round(mean(gender),3),
-              "se"       = ~ round(sd(gender)/sqrt(length(gender)),3)),
-       "Marital Status" =
-         list("mean"       = ~ round(mean(gender),3),
-              "se"       = ~ round(sd(gender)/sqrt(length(gender)),3)),
-       "Social Benefits" =
-         list("mean"       = ~ round(mean(gender),3),
-              "se"       = ~ round(sd(gender)/sqrt(length(gender)),3)),
-       "Education Level" =
-         list("mean"       = ~ round(mean(education_level),3),
-              "se"       = ~ round(sd(education_level)/sqrt(length(education_level)),3)),
-       "Years in Switzerland" =
-         list("mean"       = ~ round(mean(years_in_ch),3),
-              "se"       = ~ round(sd(years_in_ch)/sqrt(length(years_in_ch)),3)),
-       "Years in Switzerland" =
-         list("mean"       = ~ round(mean(years_in_ch),3),
-              "se"       = ~ round(sd(years_in_ch)/sqrt(length(years_in_ch)),3)),
-       "Work Percentage" =
-         list("mean"       = ~ round(mean(work_percentage ),3),
-              "se"       = ~ round(sd(work_percentage )/sqrt(length(work_percentage )),3)),
-       "Work Percentage" =
-         list("mean"       = ~ round(mean(work_percentage ),3),
-              "se"       = ~ round(sd(work_percentage )/sqrt(length(work_percentage )),3)),
-       "Living in Zurich" =
-         list("mean"       = ~ round(mean(distance),3),
-              "se"       = ~ round(sd(distance)/sqrt(length(distance)),3)),
-       "Full time equivalent income at T" =
-         list("mean"       = ~ round(mean(income_fe_t0 ),3),
-              "se"       = ~ round(sd(income_fe_t0 )/sqrt(length(income_fe_t0)),3)),
-       "Full time equivalent income at T+1" =
-         list("mean"       = ~ round(mean(income_fe_t1_assignment),3),
-              "se"       = ~ round(sd(income_fe_t1_assignment)/sqrt(length(income_fe_t1_assignment)),3))
-  )
 
-our_summary_self_select<-
-  list("Age" =
-         list("mean"       = ~ round(mean(age),3),
-              "se"       = ~ round(sd(age)/sqrt(length(age)),3)),
-       "Gender" =
-         list("mean"       = ~ round(mean(gender),3),
-              "se"       = ~ round(sd(gender)/sqrt(length(gender)),3)),
-       "Marital Status" =
-         list("mean"       = ~ round(mean(gender),3),
-              "se"       = ~ round(sd(gender)/sqrt(length(gender)),3)),
-       "Social Benefits" =
-         list("mean"       = ~ round(mean(gender),3),
-              "se"       = ~ round(sd(gender)/sqrt(length(gender)),3)),
-       "Education Level" =
-         list("mean"       = ~ round(mean(education_level),3),
-              "se"       = ~ round(sd(education_level)/sqrt(length(education_level)),3)),
-       "Years in Switzerland" =
-         list("mean"       = ~ round(mean(years_in_ch),3),
-              "se"       = ~ round(sd(years_in_ch)/sqrt(length(years_in_ch)),3)),
-       "Years in Switzerland" =
-         list("mean"       = ~ round(mean(years_in_ch),3),
-              "se"       = ~ round(sd(years_in_ch)/sqrt(length(years_in_ch)),3)),
-       "Work Percentage" =
-         list("mean"       = ~ round(mean(work_percentage ),3),
-              "se"       = ~ round(sd(work_percentage )/sqrt(length(work_percentage )),3)),
-       "Work Percentage" =
-         list("mean"       = ~ round(mean(work_percentage ),3),
-              "se"       = ~ round(sd(work_percentage )/sqrt(length(work_percentage )),3)),
-       "Living in Zurich" =
-         list("mean"       = ~ round(mean(distance),3),
-              "se"       = ~ round(sd(distance)/sqrt(length(distance)),3)),
-       "Full time equivalent income at T" =
-         list("mean"       = ~ round(mean(income_fe_t0 ),3),
-              "se"       = ~ round(sd(income_fe_t0 )/sqrt(length(income_fe_t0)),3)),
-       "Full time equivalent income at T+1" =
-         list("mean"       = ~ round(mean(income_fe_t1_self_selection),3),
-              "se"       = ~ round(sd(income_fe_t1_self_selection)/sqrt(length(income_fe_t1_self_selection)),3))
-  )
+myDescriptives = function(x) {
+  x = as.numeric(x)
+  n = round(length(x),0)
+  m = round(mean(x, na.rm = TRUE),3)
+  sd = round(sd(x),3)
+  return(c(m, n, sd))
+}
 
-summary_table_assignment <- summary_table(dplyr::group_by(data,d_assignment), our_summary_assignment)
-capture.output(print(summary_table_assignment),
-               file = "Tables/summary_table_assignment.txt")
+#prepare Datesets for createDescriptiveTable function
+colnames = c("N", "Mean", "SE")
+variables = list(c("age", "motivation", "distance", "education_level", "years_in_ch", "work_percentage", "children_german_primary", "income_fe_t1"),
+                 c("age", "motivation", "distance", "education_level", "years_in_ch", "work_percentage", "children_german_primary", "income_fe_t1"))
+labels = list(c("Age", "Motivation", "Distance", "Level of Education", "Years in Switzerland", "Work Percentage", "Children in German primary school", "Full time equivalent income"),
+              c("Age", "Motivation", "Distance", "Level of Education", "Years in Switzerland", "Work Percentage", "Children in German primary school", "Full time equivalent income"))
+data_assignment <- data %>% rename(d = d_assignment, income_fe_t1 = income_fe_t1_assignment) %>% select(age, motivation, distance, education_level, years_in_ch, work_percentage, children_german_primary, income_fe_t1,d)
+data_self_selection <- data %>% rename(d = d_self_selection, income_fe_t1 = income_fe_t1_self_selection) %>% select(age, motivation, distance, education_level, years_in_ch, work_percentage, children_german_primary, income_fe_t1,d)
+datasets <- list("Assignment" = as.data.table(data_assignment), "Self Selection" = as.data.table(data_self_selection))
 
-summary_table_self_select <- summary_table(dplyr::group_by(data,d_self_selection), our_summary_self_select)
-capture.output(print(summary_table_self_select),
-               file = "Tables/summary_table_self_select.txt")
+# Generate Table
+createDescriptiveTable(datasets,
+                       summary_function = myDescriptives,
+                       column_names = colnames,
+                       variable_names = variables,
+                       variable_labels = labels,
+                       group_variable = "d",
+                       arraystretch = 1.3,
+                       tabcolsep = 3,
+                       note = "Summary statics of covariates and outcome for assignment and self selection into treatment",
+                       title = "Summary statistics",
+                       label = "tab:summary",
+                       file = "Tables/summary.tex")
+
+
+
+# 3b Balance of dataset ------------------
 
 # Generate a balancetable
 
-covs <- data %>% select(age, gender, motivation, distance, education_level, years_in_ch, work_percentage, has_children, children_german_primary, children_english_primary,income_fe_t0) 
 
-bal.tab(d_assignment ~ covs, data = data,
-        binary = "std", continuous = "std",  stats = c("mean.diffs", "variance.ratios") ,
-        thresholds = c(m = .1, v = 2), un = TRUE )
-
-bal.tab(d_self_selection ~ covs, data = data,
-        binary = "std", continuous = "std",  stats = c("mean.diffs", "variance.ratios") ,
-        thresholds = c(m = .1, v = 2), un = TRUE )
-
-
-# Balance Table with nearest Neighbor Matching
-
-m.out <- MatchIt::matchit(d_assignment ~ age + motivation + distance + education_level + years_in_ch + work_percentage + has_children + children_german_primary + children_english_primary + income_fe_t0,
-                          data = data, replace = TRUE)
-
-summary(m.out)
-bal.tab(m.out, thresholds = c(m = .1), un = TRUE)
-
-
-m.out_self_select <- MatchIt::matchit(d_self_selection ~ age + gender + motivation + distance + education_level + years_in_ch + work_percentage + has_children + children_german_primary + children_english_primary + income_fe_t0,
-                          data = data, replace = TRUE)
-
-m.sum.self.select <- summary(m.out_self_select)
-plot(m.sum.self.select, var.order = "unmatched")
-plot(m.out_self_select, type = "density", which.xs = ~age + gender + motivation + distance + education_level + years_in_ch + work_percentage + has_children + children_german_primary + children_english_primary + income_fe_t0)
-
+sumtable(as_tibble(data_assignment), group = "d", group.test = T,vars = variables[[1]], labels = labels[[1]], out = "latex", title = "Balance Table for Random Assignment", file='Tables/balance_assignment.tex')
+sumtable(data_self_selection, group = "d", group.test = T,vars = variables[[1]], labels = labels[[1]], out = "latex", title = "Balance Table for Self Selection", file='Tables/balance_self_select.tex')
 
 #3c OLS Regression ---------------------
 
 #OLS Regression with assignment
-data <- data %>% mutate(age2 = age^2)
+data_assignment <- data_assignment %>% mutate(age2 = age^2)
+data_self_selection <- data_self_selection %>% mutate(age2 = age^2)
 
-model_assignment <- lm(income_fe_t1_assignment ~  age + age2  + education_level + years_in_ch + d_assignment,
-                       data = as.data.frame(data) )
+model_assignment <- lm(income_fe_t1 ~  age + age2  + education_level + years_in_ch + d,
+                       data = as.data.frame(data_assignment))
 
-summary(model_assignment)
-
-xtable::xtable(summary(model_assignment), caption = "OLS regression table for assignment into treatment")
+writeLines(capture.output(stargazer(model_assignment, caption = "OLS regression table for assignment into treatment", label = "ols_assignment",table.placement = "H")), "Tables/ols_assignment.tex")
+#print(xtable(summary(model_assignment), caption = "OLS regression table for assignment into treatment", label = "ols_assignment"),file="Tables/ols_assignment.tex", table.placement = getOption("xtable.table.placement", "H"))
 
 #OLS Regression with self selection
-model_self_select <- lm(income_fe_t1_self_selection ~ age + age2  + education_level + years_in_ch + d_self_selection,
-                       data = as.data.frame(data) )
+model_self_select <- lm(income_fe_t1 ~ age + age2  + education_level + years_in_ch  + d,
+                       data = as.data.frame(data_self_selection) )
 summary(model_self_select)
 
-xtable::xtable(summary(model_self_select),  caption = "OLS regression table for self selection into treatment")
+writeLines(capture.output(stargazer(model_self_select, caption = "OLS regression table for self selection into treatment", label = "ols_self_select",table.placement = "H")), "Tables/ols_self_select.tex")
+#print(xtable(summary(model_self_select),  caption = "OLS regression table for self selection into treatment", label = "ols_self_select"),file="Tables/ols_self_select.tex", table.placement = getOption("xtable.table.placement", "H"))
+
+writeLines(capture.output(stargazer(model_assignment, model_self_select, label = "tab:.  ols",table.placement = "H", align=TRUE,
+                                    covariate.labels = c("Age", "Age^2", "Education Level", "Years in Switzerland", "Treatment" ), dep.var.labels = "Full Time Equilvalent Income T+1", column.labels = c("Assignment", "Self Selection"))), "Tables/ols.tex")
+
+
