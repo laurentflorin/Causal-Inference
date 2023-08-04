@@ -42,7 +42,6 @@ data <- tibble(
   #continue_taking_course = runif(n), #probability of continuing course once they start the course
   gender = rbinom(n, size = 1, prob = 0.5),
   distance = runif(n, 0, 1),
-  #marital_status = rbinom(n, size = 1, prob = 0.3), # probability of being married 30%
   education_level = rdu(n, 0, 5),
   #zipcode = rbinom(n, size = 1, prob = 0.3), # either in Zurich or not, Zurich 30%
   #country_origin = rbinom(n, size = 1, prob = 0.8), # either schengen or rest of world, most probably from schengen
@@ -222,6 +221,7 @@ ggsave("Graphs/Income_By_Self_Selection.png", plot = last_plot(), width = 8, hei
 dir.create(file.path("Data"), showWarnings = FALSE)
 
 write.csv2(full_data, file = "Data/dataset.csv")
+
 
 
 
