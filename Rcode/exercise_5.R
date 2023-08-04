@@ -8,6 +8,7 @@ library(haven)
 library(AER)
 library(stargazer)
 library(scales)
+library(did)
 
 
 # set seed for reproducibility
@@ -115,7 +116,6 @@ ggsave("Graphs/dd_plot.png", plot = last_plot(), width = 8, height = 6)
 
 
 # 4b Did OLS
-
 model_did <- lm(income ~ zurich + year + zurich * year + age + age2 + gender + education_level + years_in_ch + year, data = panel_data)
 summary(model_did)
 
@@ -151,7 +151,7 @@ for (i in 1:n){
     }
 }
 
-model_event <- lm(income ~ zurich + year + age + age2 + gender + education_level + factor(years_in_ch) + year, data = panel_data)
+model_event <- feols(income ~ zurich + i(zurich, factor(years_in_ch), 3) + age + age2 + gender + education_level | year + years_in_ch, panel_data)
 summary(model_event)
 
 # Robust Standard Errors
