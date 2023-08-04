@@ -49,7 +49,8 @@ head(panel_data, 18)
 # Adjust the age and marital variable for each year
 panel_data <- panel_data %>%
   group_by(id) %>%
-  mutate(age = age + (year - 2018),
+  mutate(age = age + (year - 2017),
+  years_in_ch = years_in_ch + (year - 2017),
   # individuals who were not married in the previous year have a chance of being married in the following year of 10 percent
     marital_status = ifelse(lag(marital_status, default = 0) == 0 & runif(n()) <= 0.1, 1, marital_status)) %>%
   ungroup()
@@ -86,7 +87,8 @@ income = income)
 
 # Increase income by 10% for Zurich (distance < 0.2) after 2020 (T=4)
 panel_data <- panel_data %>%
-  mutate(income = ifelse(year >= 2020 & zurich == 1, income * 1.1, income))
+  mutate(income = ifelse(year >= 2020 & zurich == 1, income * 1.1, income),
+  age2 = age^2)
 
 ## Dif-In-Dif --------
 did_data <- panel_data %>%
@@ -110,3 +112,63 @@ ggplot(did_data, aes(x = year, y = avg_income, color = zurich, group = zurich)) 
   scale_y_continuous(labels = comma_format()) +  # Add thousand separator to y-axis labels
   scale_color_manual(values = c("orange", "blue"))   # Specify custom colors
 ggsave("Graphs/dd_plot.png", plot = last_plot(), width = 8, height = 6)
+
+
+# 4b Did OLS
+
+model_did <- lm(income ~ zurich + year + zurich * year + age + age2 + gender + education_level + years_in_ch + year, data = panel_data)
+summary(model_did)
+
+# Robust Standard Errors
+cov.fit.did <- vcovHC(model_did, type = "HC")
+rob.std.did <- sqrt(diag(cov.fit.did))
+
+
+
+stargazer(model_did, 
+ se = list(rob.std.did),
+ title = "OLS Regression Results",
+ align = TRUE,
+ dep.var.labels = c("Full Time Equilvalent Income T+1"),
+ covariate.labels = c("Zurich", "Year", "Age","Age2", "Gender", "Education Level", "Years in Switzerland", "Zurich * Year", "Constant"),
+ #column.labels = c("Assignment ", "Self Selection"),
+ dep.var.caption = "",
+ model.numbers = FALSE,
+ table.placement = "H",
+ out = "Tables/did.tex",
+ label = "tab:did")
+
+
+# 4c Event study
+
+# Equation (3)
+d_self_selection <- d_star
+for (i in 1:n){
+  if ((d_star[i] > 0 && panel_data$years_in_ch[i] >= 3 && panel_data$motivation[i] > 0.85)) {
+    d_self_selection[i] <- 1
+  } else {
+    d_self_selection[i] <- 0
+    }
+}
+
+model_event <- lm(income ~ zurich + year + age + age2 + gender + education_level + factor(years_in_ch) + year, data = panel_data)
+summary(model_event)
+
+# Robust Standard Errors
+cov.fit.event <- vcovHC(model_event, type = "HC")
+rob.std.event <- sqrt(diag(cov.fit.event))
+
+
+
+stargazer(model_did, 
+ se = list(rob.std.did),
+ title = "OLS Regression Results",
+ align = TRUE,
+ dep.var.labels = c("Full Time Equilvalent Income T+1"),
+ covariate.labels = c("Zurich", "Year", "Age","Age2","Education Level", "Years in Switzerland", "Zurich * Year", "Constant"),
+ #column.labels = c("Assignment ", "Self Selection"),
+ dep.var.caption = "",
+ model.numbers = FALSE,
+ table.placement = "H",
+ out = "Tables/did.tex",
+ label = "tab:did")
