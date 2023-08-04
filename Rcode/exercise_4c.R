@@ -68,7 +68,7 @@ avg_predictions(fit,
                 wts = "weights")
 
 
-print(xtable(att, caption = "ATT estimate with matching approach", label = "tab:att_mathcing"),file="Tables/att_matching.tex", table.placement = getOption("xtable.table.placement", "H"))
+print(xtable(att, caption = "ATT estimate with matching approach", label = "tab:att_matching"),file="Tables/att_matching.tex", table.placement = getOption("xtable.table.placement", "H"))
 
 #balance table for matched data
 sumtable(m.data, group = "d_self_selection", group.test = T,vars = c("age", "motivation", "distance", "education_level", "years_in_ch", "work_percentage", "children_german_primary", "income_fe_t1_self_selection"), 
