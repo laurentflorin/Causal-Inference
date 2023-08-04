@@ -7,6 +7,7 @@ library(stats)
 library(haven)
 library(AER)
 library(stargazer)
+library(scales)
 
 
 # set seed for reproducibility
@@ -15,6 +16,7 @@ set.seed(123)
 #### Load Data --------
 data <- read.csv2("Data/dataset.csv") %>%
 mutate(marital_status = rbinom(150000, size = 1, prob = 0.3), # probability of being married 30%
+        zurich = rbinom(150000, size = 1, prob = 0.2)
 )
 
 # 5 Panel Date
@@ -60,7 +62,7 @@ d_star <- -50 -  panel_data$age - panel_data$education_level - 5 * panel_data$wo
 # Equation (3)
 d_self_selection <- d_star
 for (i in 1:n){
-  if ((d_star[i] > 0 & panel_data$distance[i] <= 0.4) |(d_star[i] > 0 & panel_data$distance[i] > 0.4 & panel_data$motivation[i] > 0.85)) {
+  if ((d_star[i] > 0 && panel_data$zurich[i] == 1 && panel_data$motivation[i] > 0.85)) {
     d_self_selection[i] <- 1
   } else {
     d_self_selection[i] <- 0
@@ -82,7 +84,29 @@ d_self_selection = d_self_selection,
 income = income)
 
 
-# Increase income by 10% for Zurich (distance < 0.2) after 2020
+# Increase income by 10% for Zurich (distance < 0.2) after 2020 (T=4)
 panel_data <- panel_data %>%
-  mutate(income = ifelse(year >= 2020 & distance < 0.2, income * 1.1, income))
+  mutate(income = ifelse(year >= 2020 & zurich == 1, income * 1.1, income))
 
+## Dif-In-Dif --------
+did_data <- panel_data %>%
+  group_by(year, zurich) %>%
+  summarize(avg_income = mean(income, na.rm = TRUE)) %>%
+  ungroup()
+
+did_data <- did_data %>%
+  mutate(DiD_effect = avg_income - lag(avg_income))
+
+# Convert d_self_selection to a factor variable
+did_data$zurich <- factor(did_data$zurich)
+
+ggplot(did_data, aes(x = year, y = avg_income, color = zurich, group = zurich)) +
+  geom_line() +
+  geom_point() +
+  geom_vline(xintercept = c(2019.5), linetype = "dashed", color = "gray") +
+  labs(x = "Year", y = "Average Income", title = "",
+       color = "Lives in Zurich") +
+  theme(text = element_text(size = 16)) +
+  scale_y_continuous(labels = comma_format()) +  # Add thousand separator to y-axis labels
+  scale_color_manual(values = c("orange", "blue"))   # Specify custom colors
+ggsave("Graphs/dd_plot.png", plot = last_plot(), width = 8, height = 6)

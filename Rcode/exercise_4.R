@@ -43,6 +43,7 @@ stargazer(iv_reg_reduced, iv_reg_first, iv_reg_2sls, out = "Tables/instrumental.
 library(tidyverse)
 library(broom)
 library(rdrobust)
+library(estimatr)
 library(rddensity)
 library(modelsummary)
 library(estimatr)
@@ -69,8 +70,10 @@ distance_bins <- full_data %>%
 ggplot(distance_bins, aes(x = distance_binned, y = propoprtion_treatment)) +
   geom_col() +
   geom_vline(xintercept = 0.3) +
-  labs(x = "Distance to Zürich", y = "Proportion of people participating in the German course")+
-  theme(text = element_text(size = 16)) 
+  labs(x = "Distance to Language Center", y = "Share of People Taking the German Course")+
+  theme(text = element_text(size = 16)) +
+  theme(axis.text.x=element_text(angle=45,hjust=1))
+ggsave("Graphs/hist_compliers.png", plot = last_plot(), width = 8, height = 6)
 
 # Discontinuity in outcome across running variable
 #-------------------------------------------------------------------------------
@@ -137,17 +140,20 @@ summary(model_fuzzy)
 
 #Generating the table for results
 
-results <- data.frame(
-  term = c("(Intercept)", "distance_center", "d_self_selection"),
-  estimate = c(4346.50098, 64.69395, 463.99130),
-  std.error = c(4.776784, 59.367046, 51.566278),
-  statistic = c(909.921984, 1.089728, 8.997960),
-  p.value = c(0.000000e+00, 2.758505e-01, 2.572833e-19),
-  conf.low = c(4337.13790, -51.67278, 362.91504),
-  conf.high = c(4355.8641, 181.0607, 565.0676),
-  df = c(14896, 14896, 14896),
-  outcome = c("income_fe_t1_self_selection", "income_fe_t1_self_selection", "income_fe_t1_self_selection")
-)
+
+names(model_self_select$coefficients)<- c("(Intercept)", "age", "age2", "eduation_level", "years_in_ch", "d")
+
+
+stargazer(model_fuzzy,
+ title = "RDD fuzzy estimates",
+ align = TRUE,
+ dep.var.caption = "Dependent Variable:",
+ model.numbers = FALSE,
+ table.placement = "H",
+ out = "Tables/rdd.tex",
+ label = "tab:ols")
+
+
 
 stargazer(results,
           title = "RDD fuzzy estimates",
