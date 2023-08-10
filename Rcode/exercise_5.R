@@ -8,7 +8,10 @@ library(haven)
 library(AER)
 library(stargazer)
 library(scales)
+library(fastDummies)
+library(lfe)
 library(did)
+library(ggiplot)
 
 
 # set seed for reproducibility
@@ -52,44 +55,25 @@ panel_data <- panel_data %>%
   group_by(id) %>%
   mutate(age = age + (year - 2017),
   years_in_ch = years_in_ch + (year - 2017),
+  post = ifelse(year >= 2020, 1, 0),
   # individuals who were not married in the previous year have a chance of being married in the following year of 10 percent
-    marital_status = ifelse(lag(marital_status, default = 0) == 0 & runif(n()) <= 0.1, 1, marital_status)) %>%
+  marital_status = ifelse(lag(marital_status, default = 0) == 0 & runif(n()) <= 0.1, 1, marital_status)) %>%
   ungroup()
 
-# Redo self-selection for each period
-n <- nrow(panel_data)
-# Equation 2
-d_star <- -50 -  panel_data$age - panel_data$education_level - 5 * panel_data$work_percentage + 90 * panel_data$motivation - 20 * panel_data$distance + 40 * panel_data$children_german_primary + rnorm(n, 0, 20)
-
-# Equation (3)
-d_self_selection <- d_star
-for (i in 1:n){
-  if ((d_star[i] > 0 && panel_data$zurich[i] == 1 && panel_data$motivation[i] > 0.85)) {
-    d_self_selection[i] <- 1
-  } else {
-    d_self_selection[i] <- 0
-    }
-}
 
 # Equation (4): Treatment Effect
 u_0 <- rnorm(n, 0, 50) #error term U_i(0)
 u_1 <- rnorm(n, 0, 50) #error term U_i(1)
 delta <- 400 + u_1 - u_0
 
-# Calculate Income based on self-selection for each period 
-income <- 4000  + 4 * panel_data$age + 0.05 * panel_data$age^2  + 30 * panel_data$education_level + 3 * panel_data$years_in_ch + 120 * panel_data$motivation + d_self_selection * delta + 10 * (panel_data$year - 2017) + u_0
+# Calculate Income for each period
+income <- 4000  + delta * (panel_data$post * panel_data$zurich) + 50 * panel_data$zurich + 20 * panel_data$post + 4 * panel_data$age + 0.05 * panel_data$age^2 + + 30 * panel_data$education_level + 3 * panel_data$years_in_ch + 120 * panel_data$motivation + 0.5 * panel_data$year + u_0
 
 
 panel_data <- panel_data %>%
-mutate(d_star = d_star,
-d_self_selection = d_self_selection,
-income = income)
+mutate(income = income,
+        age2 = age^2)
 
-
-# Increase income by 10% for Zurich (distance < 0.2) after 2020 (T=4)
-panel_data <- panel_data %>%
-  mutate(income = ifelse(year >= 2020 & zurich == 1, income * 1.1, income),
-  age2 = age^2)
 
 ## Dif-In-Dif --------
 did_data <- panel_data %>%
@@ -115,8 +99,8 @@ ggplot(did_data, aes(x = year, y = avg_income, color = zurich, group = zurich)) 
 ggsave("Graphs/dd_plot.png", plot = last_plot(), width = 8, height = 6)
 
 
-# 4b Did OLS
-model_did <- lm(income ~ zurich + year + zurich * year + age + age2 + gender + education_level + years_in_ch + year, data = panel_data)
+# 5b Did OLS
+model_did <- lm(income ~ zurich + post + (zurich * post) + age + age2 + gender + education_level + years_in_ch + year, data = panel_data)
 summary(model_did)
 
 # Robust Standard Errors
@@ -125,12 +109,12 @@ rob.std.did <- sqrt(diag(cov.fit.did))
 
 
 
-stargazer(model_did, 
+stargazer(model_did,
  se = list(rob.std.did),
  title = "OLS Regression Results",
  align = TRUE,
  dep.var.labels = c("Full Time Equilvalent Income T+1"),
- covariate.labels = c("Zurich", "Year", "Age","Age2", "Gender", "Education Level", "Years in Switzerland", "Zurich * Year", "Constant"),
+ covariate.labels = c("Zurich", "Post", "Age","Age2", "Gender", "Education Level", "Years in Switzerland", "Year", "Zurich x Post", "Constant"),
  #column.labels = c("Assignment ", "Self Selection"),
  dep.var.caption = "",
  model.numbers = FALSE,
@@ -139,36 +123,121 @@ stargazer(model_did,
  label = "tab:did")
 
 
-# 4c Event study
+# 5c Event study
 
-# Equation (3)
-d_self_selection <- d_star
-for (i in 1:n){
-  if ((d_star[i] > 0 && panel_data$years_in_ch[i] >= 3 && panel_data$motivation[i] > 0.85)) {
-    d_self_selection[i] <- 1
-  } else {
-    d_self_selection[i] <- 0
-    }
-}
+panel_data <- panel_data %>%
+  mutate(rel_year = years_in_ch - 3) %>% 
+    mutate(rel_year = ifelse(rel_year == -Inf, NA, rel_year))%>% 
+    dummy_cols(select_columns = "rel_year") %>% 
+    mutate(across(starts_with("rel_year_"), ~replace_na(., 0))) %>% 
+    # generate pre and post dummies
+    mutate(Pre = ifelse((rel_year < 0) * (!is.na(rel_year)), 1, 0),
+           Post = ifelse((rel_year >= 0) * (!is.na(rel_year)), 1, 0)) %>%
+    mutate(Pre = ifelse(is.na(Pre), 0, Pre),
+           Post = ifelse(is.na(Post), 0, Post),
+           treat_year = zurich * rel_year)
 
-model_event <- feols(income ~ zurich + i(zurich, factor(years_in_ch), 3) + age + age2 + gender + education_level | year + years_in_ch, panel_data)
+
+# Calculate Income for each period
+income_event <- 4000  - 100 * (panel_data$Pre * panel_data$zurich) + delta * (panel_data$Post * panel_data$zurich) + 50 * panel_data$zurich + 20 * panel_data$rel_year + 4 * panel_data$age + 0.05 * panel_data$age^2 + + 30 * panel_data$education_level + 120 * panel_data$motivation + 3 * panel_data$years_in_ch + 0.5 * panel_data$year + u_0
+
+panel_data <- panel_data %>%
+mutate(income = income_event)
+
+model_event <- feols(income ~ i(treat_year, zurich, ref = 0) + age + age2 + gender + education_level + years_in_ch + year, data = panel_data)
 summary(model_event)
 
-# Robust Standard Errors
-cov.fit.event <- vcovHC(model_event, type = "HC")
-rob.std.event <- sqrt(diag(cov.fit.event))
+
+# save love plot
+png(filename="Graphs/event_plot.png")
+iplot(model_event)
+dev.off()
 
 
+modelsummary::modelsummary(model_event, 
+  vcov = "HC",
+  title = "OLS Regression Results",
+  coef_rename = c("Constant",
+                  "Year t-3 x Zurich",
+                  "Year t-2 x Zurich",
+                  "Year t-1 x Zurich",
+                  "Year t+1 x Zurich",
+                  "Year t+2 x Zurich",
+                  "Year t+3 x Zurich",
+                  "Year t+4 x Zurich",
+                  "Year t+5 x Zurich",
+                  "Year t+6 x Zurich",
+                  "Year t+7 x Zurich",
+                  "Year t+8 x Zurich",
+                  "Year t+9 x Zurich",
+                  "Year t+10 x Zurich",
+                  "Year t+11 x Zurich",
+                  "Year t+12 x Zurich",
+                  "Age", "Age2", "Gender", "Education Level", "Years in Switzerland", "Year"),
+  output = "Tables/event.tex")
 
-stargazer(model_did, 
- se = list(rob.std.did),
+stargazer(model_event,
  title = "OLS Regression Results",
  align = TRUE,
  dep.var.labels = c("Full Time Equilvalent Income T+1"),
- covariate.labels = c("Zurich", "Year", "Age","Age2","Education Level", "Years in Switzerland", "Zurich * Year", "Constant"),
+ #covariate.labels = c("Zurich", "Post", "Age","Age2", "Gender", "Education Level", "Years in Switzerland", "Year", "Zurich x Post", "Constant"),
+ dep.var.caption = "",
+ model.numbers = FALSE,
+ table.placement = "H",
+ out = "Tables/event.tex",
+ label = "tab:event")
+
+
+# 5d Not Parallel Trend
+# Calculate Income for each period
+income_nonparallel <- 4000  + 30 * ((panel_data$year - 2017) * panel_data$zurich) + delta * (panel_data$post * panel_data$zurich) + 50 * panel_data$zurich + 20 * panel_data$post + 4 * panel_data$age + 0.05 * panel_data$age^2 + + 30 * panel_data$education_level + 3 * panel_data$years_in_ch + 120 * panel_data$motivation + 2 * (panel_data$year - 2017) + u_0
+
+panel_data <- panel_data %>%
+mutate(income = income_nonparallel)
+
+
+## Dif-In-Dif --------
+did_data <- panel_data %>%
+  group_by(year, zurich) %>%
+  summarize(avg_income = mean(income, na.rm = TRUE)) %>%
+  ungroup()
+
+did_data <- did_data %>%
+  mutate(DiD_effect = avg_income - lag(avg_income))
+
+# Convert d_self_selection to a factor variable
+did_data$zurich <- factor(did_data$zurich)
+
+ggplot(did_data, aes(x = year, y = avg_income, color = zurich, group = zurich)) +
+  geom_line() +
+  geom_point() +
+  geom_vline(xintercept = c(2019.5), linetype = "dashed", color = "gray") +
+  labs(x = "Year", y = "Average Income", title = "",
+       color = "Lives in Zurich") +
+  theme(text = element_text(size = 16)) +
+  scale_y_continuous(labels = comma_format()) +  # Add thousand separator to y-axis labels
+  scale_color_manual(values = c("orange", "blue"))   # Specify custom colors
+ggsave("Graphs/dd_nonparallel_plot.png", plot = last_plot(), width = 8, height = 6)
+
+
+# Did OLS
+model_nonparallel <- lm(income ~ zurich + post + (zurich * post) + age + age2 + gender + education_level + years_in_ch + year, data = panel_data)
+summary(model_nonparallel)
+
+# Robust Standard Errors
+cov.fit.nonparallel <- vcovHC(model_nonparallel, type = "HC")
+rob.std.nonparallel <- sqrt(diag(cov.fit.nonparallel))
+
+
+stargazer(model_nonparallel,
+ se = list(rob.std.nonparallel),
+ title = "OLS Regression Results",
+ align = TRUE,
+ dep.var.labels = c("Full Time Equilvalent Income T+1"),
+ covariate.labels = c("Zurich", "Post", "Age","Age2", "Gender", "Education Level", "Years in Switzerland", "Year", "Zurich x Post", "Constant"),
  #column.labels = c("Assignment ", "Self Selection"),
  dep.var.caption = "",
  model.numbers = FALSE,
  table.placement = "H",
- out = "Tables/did.tex",
- label = "tab:did")
+ out = "Tables/nonparallel.tex",
+ label = "tab:nonparallel")
