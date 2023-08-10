@@ -29,7 +29,7 @@ library(lfe)
 library(did)
 library(ggiplot)
 
-devtools::source_gist("c4d1089a501d3567be9fb784b1c5a6ab") #function for nice descriptive table
+# devtools::source_gist("c4d1089a501d3567be9fb784b1c5a6ab") #function for nice descriptive table
 
 
 # set seed for reproducibility
@@ -69,18 +69,18 @@ data_self_selection <- data %>% rename(d = d_self_selection, income_fe_t1 = inco
 datasets <- list("Assignment" = as.data.table(data_assignment), "Self Selection" = as.data.table(data_self_selection))
 
 # Generate Table
-createDescriptiveTable(datasets,
-                       summary_function = myDescriptives,
-                       column_names = colnames,
-                       variable_names = variables,
-                       variable_labels = labels,
-                       group_variable = "d",
-                       arraystretch = 1.3,
-                       tabcolsep = 3,
-                       note = "Summary statics of covariates and outcome for assignment and self selection into treatment",
-                       title = "Summary statistics",
-                       label = "tab:summary",
-                       file = "Tables/summary.tex")
+# createDescriptiveTable(datasets,
+#                       summary_function = myDescriptives,
+#                       column_names = colnames,
+#                       variable_names = variables,
+#                       variable_labels = labels,
+#                       group_variable = "d",
+#                       arraystretch = 1.3,
+#                       tabcolsep = 3,
+#                       note = "Summary statics of covariates and outcome for assignment and self selection into treatment",
+#                       title = "Summary statistics",
+#                       label = "tab:summary",
+#                       file = "Tables/summary.tex")
 
 
 
@@ -272,15 +272,15 @@ stargazer(model_fuzzy,
 
 
 
-stargazer(results,
-          title = "RDD fuzzy estimates",
-          column.labels = c("Estimate", "Std. Error", "Statistic", "P-value", "95% CI Lower", "95% CI Upper", "DF"),
-          align = TRUE,
-          dep.var.caption = "Dependent Variable:",
-          dep.var.labels = c("Income in T = 1","Self Selection", "Income in T = 1"),
-          rownames = FALSE,
-          out = "Tables/rdd.tex"
-)
+#stargazer(results,
+#          title = "RDD fuzzy estimates",
+#          column.labels = c("Estimate", "Std. Error", "Statistic", "P-value", "95% CI Lower", "95% CI Upper", "DF"),
+#          align = TRUE,
+#          dep.var.caption = "Dependent Variable:",
+#          dep.var.labels = c("Income in T = 1","Self Selection", "Income in T = 1"),
+#          rownames = FALSE,
+#          out = "Tables/rdd.tex"
+#)
 
 # 4c 
 
